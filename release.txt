@@ -1,0 +1,52 @@
+# ===============================
+# CONFIGURAR LA NUEVA VERSIÓN
+# ===============================
+$env:VERSION="0.0.1"   # <--- CAMBIA SOLO ESTO
+
+# ===============================
+# VARIABLES IMPORTANTES
+# ===============================
+$env:IMAGE_LOCAL="agro-api"
+$env:ACR_PRD="devagroacr"
+$env:REPO_PROD="devagroacr.azurecr.io/agro-api"
+
+# ===============================
+# ELIMINAR EL CONTENEDOR LOCAL VIEJO
+# ===============================
+docker rm -f agro-api 2>$null
+
+# ===============================
+# CONSTRUIR NUEVA IMAGEN LOCAL
+# ===============================
+docker build -t "$($env:IMAGE_LOCAL):$($env:VERSION)" .
+
+# ===============================
+# PROBAR LOCALMENTE (OPCIONAL)
+# ===============================
+docker run `
+  --env-file .env `
+  -p 8000:8000 `
+  -d `
+  --name agro-api `
+  "$($env:IMAGE_LOCAL):$($env:VERSION)"
+
+# ===============================
+# LOGIN AL REGISTRO ACR
+# ===============================
+az acr login --name $env:ACR_PRD
+
+# ===============================
+# CREAR TAGS PARA SUBIR
+# ===============================
+docker tag "$($env:IMAGE_LOCAL):$($env:VERSION)" "$($env:REPO_PROD):$($env:VERSION)"
+docker tag "$($env:IMAGE_LOCAL):$($env:VERSION)" "$($env:REPO_PROD):latest"
+
+# ===============================
+# PUSH VERSIÓN ESPECÍFICA
+# ===============================
+docker push "$($env:REPO_PROD):$($env:VERSION)"
+
+# ===============================
+# PUSH latest
+# ===============================
+docker push "$($env:REPO_PROD):latest"
